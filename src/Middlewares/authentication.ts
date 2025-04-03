@@ -3,43 +3,52 @@ import jwt from "jsonwebtoken";
 import { NextFunction, Response } from "express";
 import Artist from "../Models/Artist";
 import User from "../Models/User";
-import { IArtistRequest, IUserRequest } from "../interfaces";
+import { IAuthRequest, IUser, IArtist } from "../interfaces";
+import mongoose from "mongoose";
 
-// General Authentication Middleware for both Users & Artists
+// General Authentication Middleware for Users, Artists, and Admins
 export const isAuthenticated = asyncHandler(
-  async (req: IUserRequest & IArtistRequest, res: Response, next: NextFunction) => {
+  async (req: IAuthRequest, res: Response, next: NextFunction) => {
     let token;
 
-    if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+    if (req.headers.authorization?.startsWith("Bearer")) {
       try {
         // Extract token from header
         token = req.headers.authorization.split(" ")[1];
 
-        // Decode the token and get the user or artist id
-        const decoded: any = jwt.verify(token, process.env.JWT_SECRET_KEY as string);
+        // Decode the token and extract user details
+        const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY as string) as {
+          id: string;
+          role: "user" | "artist" | "admin";
+        };
 
-        // Determine if it's a user or artist by checking the decoded data
+        let userOrArtist: IUser | IArtist | null = null;
+
+        // Fetch user or artist based on role
         if (decoded.role === "user" || decoded.role === "admin") {
-          req.user = await User.findById(decoded.id).select("-password"); // Get user without password
-          console.log("Authenticated user data:", req.user);
+          userOrArtist = (await User.findById(decoded.id).select("-password")) as IUser | null;
         } else if (decoded.role === "artist") {
-          req.artist = await Artist.findById(decoded.id).select("-password"); // Get artist without password
-          console.log("Authenticated artist data:", req.artist);
-        } else {
-          res.status(401);
-          throw new Error("Invalid role in token");
+          userOrArtist = (await Artist.findById(decoded.id).select("-password")) as IArtist | null;
         }
 
-        next(); // Continue if authenticated
+        if (!userOrArtist) {
+          res.status(401);
+          throw new Error("User not found");
+        }
 
-      } catch (error: any) {
-        console.log(error.message);
+        //  Ensure `_id` is correctly recognized as a string
+        req.user = {
+          id: (userOrArtist._id as mongoose.Types.ObjectId).toString(),
+          role: decoded.role,
+        };
+
+        next(); // Continue to the next middleware
+      } catch (error) {
+        console.error("Authentication error:", error);
         res.status(401);
         throw new Error("Invalid token");
       }
-    }
-
-    if (!token) {
+    } else {
       res.status(401);
       throw new Error("No token provided");
     }

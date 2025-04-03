@@ -1,12 +1,14 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import asyncHandler from "express-async-handler";
 import Artist from "../Models/Artist";
-import { IArtistRequest } from "../interfaces";
+import { IAuthRequest } from "../interfaces";
 
-// @desc    Register new artist
-// @route   POST /api/artists/register
-// @access  Public
-export const registerArtist = asyncHandler(async (req: Request, res: Response) => {
+/**
+ * @desc    Register new artist
+ * @route   POST /api/artists/register
+ * @access  Public
+ */
+export const registerArtist = asyncHandler(async (req: IAuthRequest, res: Response) => {
   const { name, bio, genres, email, password } = req.body;
 
   // Check if artist exists
@@ -21,7 +23,6 @@ export const registerArtist = asyncHandler(async (req: Request, res: Response) =
 
   if (artist) {
     res.status(201).json({
-    //   _id: artist._id,
       name: artist.name,
       email: artist.email,
       token: artist.getJwtToken(),
@@ -32,17 +33,18 @@ export const registerArtist = asyncHandler(async (req: Request, res: Response) =
   }
 });
 
-// @desc    Login artist & get token
-// @route   POST /api/artists/login
-// @access  Public
-export const loginArtist = asyncHandler(async (req: Request, res: Response) => {
+/**
+ * @desc    Login artist & get token
+ * @route   POST /api/artists/login
+ * @access  Public
+ */
+export const loginArtist = asyncHandler(async (req: IAuthRequest, res: Response) => {
   const { email, password } = req.body;
 
   const artist = await Artist.findOne({ email });
 
   if (artist && (await artist.comparePassword(password))) {
     res.json({
-    //   _id: artist._id,
       name: artist.name,
       email: artist.email,
       token: artist.getJwtToken(),
@@ -53,15 +55,21 @@ export const loginArtist = asyncHandler(async (req: Request, res: Response) => {
   }
 });
 
-// @desc    Get artist profile
-// @route   GET /api/artists/profile
-// @access  Private
-export const getArtistProfile = asyncHandler(async (req: IArtistRequest, res: Response) => {
-  const artist = await Artist.findById(req.artist?.id);
+/**
+ * @desc    Get artist profile
+ * @route   GET /api/artists/profile
+ * @access  Private
+ */
+export const getArtistProfile = asyncHandler(async (req: IAuthRequest, res: Response) => {
+  if (!req.user) {
+    res.status(401);
+    throw new Error("Unauthorized");
+  }
+
+  const artist = await Artist.findById(req.user.id);
 
   if (artist) {
     res.json({
-    //   _id: artist._id,
       name: artist.name,
       email: artist.email,
       bio: artist.bio,
@@ -74,11 +82,18 @@ export const getArtistProfile = asyncHandler(async (req: IArtistRequest, res: Re
   }
 });
 
-// @desc    Update artist profile
-// @route   PUT /api/artists/profile
-// @access  Private
-export const updateArtistProfile = asyncHandler(async (req: IArtistRequest, res: Response) => {
-  const artist = await Artist.findById(req.artist?.id);
+/**
+ * @desc    Update artist profile
+ * @route   PUT /api/artists/profile
+ * @access  Private
+ */
+export const updateArtistProfile = asyncHandler(async (req: IAuthRequest, res: Response) => {
+  if (!req.user) {
+    res.status(401);
+    throw new Error("Unauthorized");
+  }
+
+  const artist = await Artist.findById(req.user.id);
 
   if (artist) {
     artist.name = req.body.name || artist.name;
@@ -87,13 +102,12 @@ export const updateArtistProfile = asyncHandler(async (req: IArtistRequest, res:
     artist.availability = req.body.availability ?? artist.availability;
 
     if (req.body.password) {
-      artist.password = req.body.password;
+      artist.password = req.body.password; // Will trigger password hashing in model
     }
 
     const updatedArtist = await artist.save();
 
     res.json({
-    //   _id: updatedArtist._id,
       name: updatedArtist.name,
       email: updatedArtist.email,
       bio: updatedArtist.bio,

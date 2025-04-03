@@ -11,6 +11,11 @@ const BookingSchema: Schema<IBooking> = new Schema(
         type: mongoose.Schema.Types.ObjectId, 
         ref: "Event", required: true 
     },
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User", // Reference to the User model
+      required: true, // User should be required for each booking
+    },
     status: { 
         type: String, 
         enum: ["Pending", "Confirmed", "Cancelled"], 
