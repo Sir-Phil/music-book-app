@@ -10,7 +10,7 @@ process.on("uncaughtException", (err) =>{
     console.log(`Server shutting down for handling uncaught exception`)
 });
 
-connectDB
+connectDB()
 
 const server = app.listen(process.env.PORT, () => {
     console.log(

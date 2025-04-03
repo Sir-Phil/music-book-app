@@ -25,3 +25,12 @@ export const isAdmin = asyncHandler(
     }
   }
 );
+
+// Middleware to check if the user is an Artist or Admin
+export const isArtistOrAdmin = asyncHandler(async (req: IAuthRequest, res: Response, next: NextFunction) => {
+  if (req.user?.role !== "artist" && req.user?.role !== "admin") {
+    res.status(403);
+    throw new Error("Not authorized as an artist or admin");
+  }
+  next();
+});

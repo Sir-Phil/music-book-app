@@ -10,7 +10,7 @@ export interface IAuthRequest extends Request {
 }
 
 // User Interface
-export interface IUser extends Document {
+export interface IUser extends mongoose.Document {
   name: string;
   email: string;
   password: string;

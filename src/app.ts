@@ -4,6 +4,11 @@ import cors from "cors";
 import bodyParser from "body-parser";
 import { errorHandler, notFound } from "./Middlewares/errorHandle";
 
+import userRoute from "./Routes/userRoute"
+import bookingRoute from "./Routes/bookingRoute"
+import eventRoute from "./Routes/eventRoute"
+import artistRoute from "./Routes/artistRoute"
+
 
 
 const app = express();
@@ -23,6 +28,11 @@ if (process.env.NODE_ENV !== "PRODUCTION") {
       path: "config/.env",
     });
 }
+
+app.use("/api/users", userRoute )
+app.use("/api/booking", bookingRoute)
+app.use("/api/events", eventRoute)
+app.use("/app/artist", artistRoute)
 
 //for ErrorHandling
 app.use(errorHandler);

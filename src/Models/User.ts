@@ -1,9 +1,13 @@
 import mongoose, { Schema, Document } from "mongoose";
-import jwt from "jsonwebtoken";
+import jwt, {SignOptions} from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { IUser } from "../interfaces";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 
+// Define the schema
 const UserSchema: Schema<IUser> = new mongoose.Schema(
     {
         name: { type: String, required: true },
@@ -28,33 +32,26 @@ UserSchema.pre<IUser>("save", async function (next) {
     }
 });
 
-// Generate JWT token
-UserSchema.methods.getJwtToken = function (): string {
-    const user = this as IUser;
-    const secretKey: string | undefined = process.env.JWT_SECRET_KEY;
-    let expiresIn: string | number | undefined = process.env.JWT_EXPIRES;
+UserSchema.methods.generateToken = function (): string {
+    const payload = { id: this._id.toString() };
+  
+    const options: SignOptions = {
+      expiresIn: process.env.JWT_EXPIRES as SignOptions["expiresIn"], // Correct type cast
+    };
+  
+    return jwt.sign(payload, process.env.JWT_SECRET_KEY as string, options);
+  };
 
-    if (!secretKey) {
-        throw new Error("Missing JWT_SECRET_KEY in environment variables.");
-    }
 
-    // Convert `expiresIn` to number if it's a valid numeric string
-    if (expiresIn && !isNaN(Number(expiresIn))) {
-        expiresIn = Number(expiresIn);
-    }
-
-    return jwt.sign(
-        { id: user._id.toString() }, 
-        secretKey, 
-        { expiresIn: expiresIn as jwt.SignOptions["expiresIn"] } // Type safety
-    );
-};
-// Compare password
-UserSchema.methods.comparePassword = async function (enteredPassword: string): Promise<boolean> {
-    const user = this.IUser
-    return await bcrypt.compare(enteredPassword, user.password);
+// ✅ Fix: Explicitly define `this` as IUser
+UserSchema.methods.comparePassword = async function (
+    this: IUser,
+    enteredPassword: string
+): Promise<boolean> {
+    return await bcrypt.compare(enteredPassword, this.password);
 };
 
+// Define the model
 const User = mongoose.model<IUser>("User", UserSchema);
 
 export default User;

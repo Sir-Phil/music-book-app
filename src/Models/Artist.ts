@@ -52,25 +52,16 @@ ArtistSchema.pre<IArtist>("save", async function (next){
 
 //jwt token
 ArtistSchema.methods.getJwtToken = function (): string {
-    const artist = this as IArtist;
-    const secretKey: string | undefined = process.env.JWT_SECRET_KEY;
-    let expiresIn: string | number | undefined = process.env.JWT_EXPIRES;
+    const payload = { id: this._id.toString() };
+  
+    const options: SignOptions = {
+      expiresIn: process.env.JWT_EXPIRES as SignOptions["expiresIn"], // Correct type cast
+    };
+  
+    return jwt.sign(payload, process.env.JWT_SECRET_KEY as string, options);
+  };
 
-    if (!secretKey) {
-        throw new Error("Missing JWT_SECRET_KEY in environment variables.");
-    }
 
-    // Convert `expiresIn` to number if it's a valid numeric string
-    if (expiresIn && !isNaN(Number(expiresIn))) {
-        expiresIn = Number(expiresIn);
-    }
-
-    return jwt.sign(
-        { id: artist._id.toString() }, 
-        secretKey, 
-        { expiresIn: expiresIn as jwt.SignOptions["expiresIn"] } // Type safety
-    );
-};
 
 //compare password
 ArtistSchema.methods.comparePassword = async function(enteredPassword: string): Promise<boolean>{

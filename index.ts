@@ -1,8 +1,8 @@
 import * as dotenv from "dotenv";
-import connectDB from "./Database/dbConfig";
-import app from "./app";
+import app from "./src/app";
 
 dotenv.config();
+
 
 
 process.on("uncaughtException", (err) =>{
@@ -10,7 +10,7 @@ process.on("uncaughtException", (err) =>{
     console.log(`Server shutting down for handling uncaught exception`)
 });
 
-connectDB
+
 
 const server = app.listen(process.env.PORT, () => {
     console.log(
